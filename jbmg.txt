@@ -1,0 +1,77 @@
+int dust_sensor = A0;   // 미세먼지 핀 번호
+float dust_value = 0;  // 센서에서 입력 받은 미세먼지 값
+float dustDensityug=0;  // ug/m^3 값을 계산
+int sensor_led = 12;      // 미세먼지 센서 안에 있는 적외선 led 핀 번호
+int sampling = 280;    // 적외선 led를 키고, 센서 값을 읽어 들여 미세먼지를 측정하는 샘플링 시간
+int waiting = 40;    
+float stop_time = 9680;   // 센서를 구동하지 않는 시간
+int motor = 3
+ 
+void setup(){
+  Serial.begin(9600);   // 시리얼 모니터 시작, 속도는 9600
+  pinMode(motor, OUTPUT); // 
+  pinMode(4, OUTPUT);
+}
+==================================
+int Raindrops_pin = A1;  // 빗방울센서 핀을 A0으로 설정
+
+void setup(){
+  Serial.begin(9600);   // Serial monitor 전원 인가
+  pinMode(A0 , INPUT);   // 빗방울 감지핀을 아날로그 입력으로 설정
+  pinMode(motor, OUTPUT);  // 모터로바꿈
+
+}
+void loop(){
+ 
+  Serial.println(analogRead(A0));  // 센서값을 시리얼모니터로 전송
+  delay(100);                       // 센서값 간격 0.1초로 설정
+  if(analogRead(A0) < 500){         // 빗방울 감지핀의 수위가 500미만이면
+    digitalWrite( 7, HIGH);         // 모니터 작동
+     if(Serial.available())  //시리얼모니터에서 데이터가 들어오면
+  {
+    char in_data;         // 입력된 데이터 저장을 위한 변수
+    in_data = Serial.read();  //입력된 데이터 in_data에 저장
+    if(in_data == '1')    //입력된 데이터가 '1'이라면
+    {
+      digitalWrite(in1, HIGH);
+      digitalWrite(in2, LOW);   //앞으로 회전
+    }
+    else if(in_data == '2') //입력된 데이터가 '2'라면
+    {
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, HIGH);  //뒤로 회전 (어떤 방향으로 꽂았느냐에 따라서 방향 반대)
+    }
+    else  // 그 이외의 값에서는
+    {
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);  //회전 정지
+    }
+  }
+ ==================================
+
+
+int Light = A3;
+int power = 13; // 각 포트 설정
+ 
+void setup() {
+  Serial.begin(9600); //시리얼 모니터 오픈
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
+}
+ 
+void loop() {
+  int cds = analogRead(A1); //A3으로 들어오는 값을 cds에 저장
+  Serial.println(cds);     //시리얼 모니터에 출력
+ 
+  if(cds < 200) //cds값이 200보다 작으면 // 흐린날, 전원유지
+  {
+    digitalWrite(power, HIGH); //led1 온 
+    
+  }
+  else          //cds값이 200보다 크면 // 맑은날, 전원off
+  {
+    digitalWrite(power, LOW);  //led1 오프
+   
+  }
+  delay(200); 
+}
