@@ -1,78 +1,259 @@
-int dust_sensor = A0;   // 미세먼지 핀 번호
-float dust_value = 0;  // 센서에서 입력 받은 미세먼지 값
-float dustDensityug=0;  // ug/m^3 값을 계산
-int sensor_led = 12;      // 미세먼지 센서 안에 있는 적외선 led 핀 번호
-int sampling = 280;    // 적외선 led를 키고, 센서 값을 읽어 들여 미세먼지를 측정하는 샘플링 시간
-int waiting = 40;    
-float stop_time = 9680;   // 센서를 구동하지 않는 시간
-int motor = 3
- 
-void setup(){
-  Serial.begin(9600);   // 시리얼 모니터 시작, 속도는 9600
-  pinMode(motor, OUTPUT); // 
-  pinMode(4, OUTPUT);
-}
-==================================
-int Raindrops_pin = A1;  // 빗방울센서 핀을 A0으로 설정
+#include <DHT.h>  // dht 라이브러리 사용
 
-void setup(){
-  Serial.begin(9600);   // Serial monitor 전원 인가
-  pinMode(A0 , INPUT);   // 빗방울 감지핀을 아날로그 입력으로 설정
-  pinMode(motor, OUTPUT);  // 모터로바꿈
+#include <Servo.h>  //  servo 라이브러리 사용
 
-}
-void loop(){
- 
-  Serial.println(analogRead(A0));  // 센서값을 시리얼모니터로 전송
-  delay(100);                       // 센서값 간격 0.1초로 설정
-  if(analogRead(A0) < 500){         // 빗방울 감지핀의 수위가 500미만이면
-    digitalWrite( 7, HIGH);         // 모니터 작동
-     if(Serial.available())  //시리얼모니터에서 데이터가 들어오면
-  {
-    char in_data;         // 입력된 데이터 저장을 위한 변수
-    in_data = Serial.read();  //입력된 데이터 in_data에 저장
-    if(in_data == '1')    //입력된 데이터가 '1'이라면
-    {
-      digitalWrite(in1, HIGH);
-      digitalWrite(in2, LOW);   //앞으로 회전
-    }
-    else if(in_data == '2') //입력된 데이터가 '2'라면
-    {
-      digitalWrite(in1, LOW);
-      digitalWrite(in2, HIGH);  //뒤로 회전 (어떤 방향으로 꽂았느냐에 따라서 방향 반대)
-    }
-    else  // 그 이외의 값에서는
-    {
-      digitalWrite(in1, LOW);
-      digitalWrite(in2, LOW);  //회전 정지
-    }
-  }
- ==================================
+#include <LiquidCrystal_I2C.h>  // lcd라이브러리 사용
+
+#include <Wire.h>
 
 
-int Light = A3;
-int power = 13; // 각 포트 설정
- 
+
+#define DHTPIN 9  // 온습도 센서 9번핀 사용
+
+#define DHTTYPE DHT22  // dht 타입 dht22으로 설정
+
+#define lig A0  // 조도센서 A0핀으로 설정
+
+#define BRIGHTNESS_LIMIT 500
+
+
+
+float hum; // 습도값 저장 변수
+
+float temp; // 온도값 저장 변수
+
+
+
+LiquidCrystal_I2C lcd(0x27, 20, 4);  // LCD객체 선언
+
+DHT dht(DHTPIN, DHTTYPE);  // dht객체 선언
+
+Servo servo;  //  servo객체 선언
+
+
+
+int btn1 = 6;  // 버튼 1 6번핀으로 설정
+
+int btn2 = 7;  // 버튼 2 7번핀으로 설정
+
+int cnt = 1;  // 버튼 누름 횟수 입력 변수
+
+int rain = 8;  // 빗물감지 센서 8번핀으로 설정
+
+
+
 void setup() {
-  Serial.begin(9600); //시리얼 모니터 오픈
-  pinMode(led1, OUTPUT);
-  pinMode(led2, OUTPUT);
+
+  pinMode(btn1, INPUT_PULLUP);  // btn1 입력으로 설정
+
+  pinMode(btn2, INPUT_PULLUP);  // btn2 입력으로 설정
+
+  pinMode(lig, INPUT);  // lig 입력으로 설정
+
+  pinMode(rain, INPUT);  // rain 입력으로 설정
+
+  lcd.init();  // lcd창 초기화
+
+  lcd.backlight();  // lcd 백라이트 on
+
+  servo.attach(10);  // servo 11번핀으로 설정
+
+  Serial.begin(9600);
+
+  pinMode(2, OUTPUT);
+
 }
- 
+
+
+
 void loop() {
-  int cds = analogRead(A1); //A3으로 들어오는 값을 cds에 저장
-  Serial.println(cds);     //시리얼 모니터에 출력
- 
-  if(cds < 200) //cds값이 200보다 작으면 // 흐린날, 전원유지
-  {
-    digitalWrite(power, HIGH); //led1 온 
+
+
+
+  Serial.print("HUMIDITY: "); // "HUMIDITY:" 출력
+
+  Serial.print(hum,0);// 습도 값 소수점 이하 자리 없음
+
+  Serial.print(" %, TEMPERATURE: "); //"%"(습도단위) "TEMPERATURE:" 출력
+
+  Serial.print(temp, 1);//온도값은 소수점 이하 1자리까지 표시
+
+  Serial.println(" C"); //"C" 온도 단위 표시
+
+
+
+
+
+       int brightness = analogRead(A0);
+
+      
+
+       if ( brightness < BRIGHTNESS_LIMIT ) // 어두운 경우
+
+       {
+
+        digitalWrite(2, LOW);
+
+       }
+
+       else
+
+       {
+
+         digitalWrite(2, HIGH);
+
+       }
+
+  
+
+  float h = dht.readHumidity();  // 습도 값 입력
+
+  float t = dht.readTemperature();  // 온도 값 입력
+
+  hum = dht.readHumidity();//온도값 읽기
+
+  temp= dht.readTemperature();//습도값 읽기
+
+  int val1 = analogRead(lig);  // 조도센서 값 입력
+
+  int val2 = digitalRead(rain);  // 빗물감지 센서 값 입력
+
+  
+
+  if(digitalRead(btn1) == LOW){  // 버튼1을 눌렀을 경우 1증가
+
+    cnt += 1;
+
+    if(cnt == 4){
+
+      cnt = 1;
+
+    }
+
+    delay(1000);  // 0.1초 지속
+
+  }
+
+  
+
+  if(digitalRead(btn2) == LOW){  // 버튼2를 눌렀을 경우 1감소
+
+    cnt -= 1;
+
+    if(cnt == 0){
+
+      cnt = 3;
+
+    }
+
+    delay(1000);  // 0.1초 지속
+
+  }
+
+
+
+  
+
+  if(cnt == 1){  // cnt가 1일때 온도 센서로 서보모터 제어
+
+
+
     
-  }
-  else          //cds값이 200보다 크면 // 맑은날, 전원off
-  {
-    digitalWrite(power, LOW);  //led1 오프
-   
-  }
-  delay(200); 
-}
-1
+
+    delay(500);
+
+    lcd.setCursor(0,0);
+
+    lcd.print("  Temperature  ");
+
+    lcd.setCursor(5,1);
+
+    float t = temp; // 온도값을 t에 할당
+
+    lcd.print(t,1); // 온도값 LCD로 출력
+
+    lcd.print(" C"); // 온도 단위 표시
+
+    delay(700);
+
+    if(t >= 24){  // 온도가 15도 이상일 때 창문 열림
+
+      servo.write(120);
+
+      delay(3000);
+
+      servo.write(90);
+
+      delay(3000);
+
+      
+
+    }else{  // 온도가 15도 미만일 때 창문 닫힘
+
+      servo.write(0);
+
+      delay(3000);
+
+      servo.write(90);
+
+       
+
+    }
+
+  }else if(cnt == 2){  // cnt가 2일때 습도센서로 서보모터 제어
+
+     delay(2500);
+
+    lcd.setCursor(0,0);
+
+    lcd.print("    Humidity    ");
+
+    lcd.setCursor(5,1);
+
+    float h = hum; //습도값 h에 할당
+
+    lcd.print(h);  // 문자 출력
+
+    lcd.print(" % "); //습도 단위 출력
+
+    delay(2500);
+
+    if(h >= 45){  // 습도가 150 이상일 때 창문 열림
+
+      servo.write(120);
+
+     delay(3000);
+
+     servo.write(90);
+
+     delay(3000);
+
+    }else{  // 습도가 150 미만일 때 창문 닫힘
+
+      servo.write(0);
+
+       delay(3000);
+
+    servo.write(90);
+
+    delay(3000);
+
+    }
+
+  
+
+  }else if(cnt == 3){  // cnt가 4일때 빗물감지 센서로 서보모터 제어
+
+    lcd.setCursor(0,0);
+
+    lcd.print("     Mode 3     ");
+
+    lcd.setCursor(0,1);
+
+    lcd.print("      Water     ");  // 문자 출력
+
+    delay(2000);
+
+    if(val2 != 0){  // 빗물이 감지되지 않으면 창문이 열림
+
+      servo.write(120);
