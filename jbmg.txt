@@ -6,7 +6,7 @@
 
 #include <Wire.h>
 
-
+ 
 
 #define DHTPIN 9  // 온습도 센서 9번핀 사용
 
@@ -16,13 +16,21 @@
 
 #define BRIGHTNESS_LIMIT 500
 
-
+ 
 
 float hum; // 습도값 저장 변수
 
 float temp; // 온도값 저장 변수
 
+float hum_prev; // 습도 과거 비교값
 
+float temp_prev; //온도 과거 비교값
+
+float val2_prev;
+
+int firstRun = 1;
+
+ 
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);  // LCD객체 선언
 
@@ -30,7 +38,7 @@ DHT dht(DHTPIN, DHTTYPE);  // dht객체 선언
 
 Servo servo;  //  servo객체 선언
 
-
+ 
 
 int btn1 = 6;  // 버튼 1 6번핀으로 설정
 
@@ -40,7 +48,7 @@ int cnt = 1;  // 버튼 누름 횟수 입력 변수
 
 int rain = 8;  // 빗물감지 센서 8번핀으로 설정
 
-
+ 
 
 void setup() {
 
@@ -58,17 +66,17 @@ void setup() {
 
   servo.attach(10);  // servo 11번핀으로 설정
 
-  Serial.begin(9600);
+  Serial.begin(9600); //시리얼모니터 설정
 
-  pinMode(2, OUTPUT);
+  pinMode(2, OUTPUT); //필름전원 출력
 
 }
 
-
+ 
 
 void loop() {
 
-
+ 
 
   Serial.print("HUMIDITY: "); // "HUMIDITY:" 출력
 
@@ -80,11 +88,11 @@ void loop() {
 
   Serial.println(" C"); //"C" 온도 단위 표시
 
+ 
 
+ 
 
-
-
-       int brightness = analogRead(A0);
+       int brightness = analogRead(A0); // A0조도센서에서 값을 받음
 
       
 
@@ -92,7 +100,7 @@ void loop() {
 
        {
 
-        digitalWrite(2, LOW);
+        digitalWrite(2, LOW); // 전원on, 필름투명
 
        }
 
@@ -100,7 +108,7 @@ void loop() {
 
        {
 
-         digitalWrite(2, HIGH);
+         digitalWrite(2, HIGH); // 전원off, 필름불투명
 
        }
 
@@ -108,11 +116,11 @@ void loop() {
 
   float h = dht.readHumidity();  // 습도 값 입력
 
-  float t = dht.readTemperature();  // 온도 값 입력
+  float t = dht.readTemperature();  // 온도 값 입력'
 
-  hum = dht.readHumidity();//온도값 읽기
+  hum = dht.readHumidity();//습도값 읽기
 
-  temp= dht.readTemperature();//습도값 읽기
+  temp= dht.readTemperature();//온도값 읽기
 
   int val1 = analogRead(lig);  // 조도센서 값 입력
 
@@ -150,15 +158,13 @@ void loop() {
 
   }
 
-
+ 
 
   
 
-  if(cnt == 1){  // cnt가 1일때 온도 센서로 서보모터 제어
+  if(cnt == 2){  // cnt가 2일때 온도 센서로 서보모터 제어
 
-
-
-    
+ 
 
     delay(500);
 
@@ -176,31 +182,87 @@ void loop() {
 
     delay(700);
 
-    if(t >= 24){  // 온도가 15도 이상일 때 창문 열림
+    
 
-      servo.write(120);
+    servo.write(90);
 
-      delay(3000);
+    delay(100);
 
-      servo.write(90);
+  
 
-      delay(3000);
+    if(t >= temp_prev){  //온도변화, 24도이상 창문열림
 
-      
+     if(temp_prev>=24){
 
-    }else{  // 온도가 15도 미만일 때 창문 닫힘
+      servo.write(90);    
 
-      servo.write(0);
+      delay(1000);
 
-      delay(3000);
+     } else{
 
-      servo.write(90);
+      if(t<24){
 
-       
+        servo.write(90);
+
+        delay(100);     
+
+      }else{
+
+        servo.write(120);
+
+        delay(2500);
+
+        servo.write(90);
+
+        delay(100);
+
+      }
+
+     }
 
     }
 
-  }else if(cnt == 2){  // cnt가 2일때 습도센서로 서보모터 제어
+     else{
+
+     if(temp_prev<24){ // 온도변화, 24도미만 창문닫힘
+
+      servo.write(90);
+
+      delay(100);
+
+     }else{
+
+      if(t>=24){
+
+        servo.write(90);
+
+        delay(100);
+
+      }else{
+
+        servo.write(0);
+
+        delay(1800);
+
+        servo.write(90);
+
+        delay(100);        
+
+      }
+
+     }
+
+     }
+
+     servo.write(90);
+
+   delay(100);
+
+   temp_prev=t;
+
+   delay(100);
+
+  }else if(cnt == 1){  // cnt가 1일때 습도센서로 서보모터 제어
 
      delay(2500);
 
@@ -218,29 +280,85 @@ void loop() {
 
     delay(2500);
 
-    if(h >= 45){  // 습도가 150 이상일 때 창문 열림
+   servo.write(90);
 
-      servo.write(120);
+   delay(100);
 
-     delay(3000);
+  
 
-     servo.write(90);
+    if(h >= hum_prev){  // 습도가 60 이상일 때 (비) 창문 닫힘
 
-     delay(3000);
+     if(hum_prev>=60){
 
-    }else{  // 습도가 150 미만일 때 창문 닫힘
+      servo.write(90);    
 
-      servo.write(0);
+     delay(1000);
 
-       delay(3000);
+     }else{
 
-    servo.write(90);
+      if(h<60){
 
-    delay(3000);
+        servo.write(90);
+
+        delay(100);     
+
+      }else{
+
+        servo.write(120); //
+
+        delay(2500);
+
+        servo.write(90);
+
+        delay(100);
+
+      }
+
+     }
 
     }
 
-  
+     else{
+
+     if(hum_prev<60){ // 습도 60미만일 때 창문 열림
+
+      servo.write(90);
+
+      delay(100);
+
+     }else{
+
+      if(h>=60){
+
+        servo.write(90);
+
+        delay(100);
+
+      }else{
+
+        servo.write(0); // 
+
+        delay(1800);
+
+        servo.write(90);
+
+        delay(100);
+
+        
+
+      }
+
+     }
+
+     }
+
+     servo.write(90);
+
+   delay(100);
+
+   hum_prev=h;
+
+   delay(100);
 
   }else if(cnt == 3){  // cnt가 4일때 빗물감지 센서로 서보모터 제어
 
@@ -254,6 +372,54 @@ void loop() {
 
     delay(2000);
 
-    if(val2 != 0){  // 빗물이 감지되지 않으면 창문이 열림
+    if(val2 != 0){
 
-      servo.write(120);
+      if(val2_prev!=0){// 빗물이 감지되지 않으면 창문이 열림      
+
+      servo.write(90);
+
+        delay(100);
+
+      }else{
+
+        servo.write(120);
+
+        delay(2500);
+
+        servo.write(90);
+
+        delay(100);
+
+      }
+
+    }else{
+
+      servo.write(90);
+
+      delay(100);
+
+      if(val2_prev!=0){// 빗물이 감지되면 창문이 닫힘
+
+      servo.write(0);
+
+      delay(1800);
+
+      servo.write(90);
+
+        delay(100);
+
+      }       
+
+    }
+
+    servo.write(90);
+
+        delay(100);
+
+    val2_prev=val2;
+
+    delay(100);
+
+  } 
+
+}
